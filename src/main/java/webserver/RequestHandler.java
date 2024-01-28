@@ -69,7 +69,15 @@ public class RequestHandler extends Thread {
                         url).toPath());
                 response200Header(dos, body.length);
                 responseBody(dos, body);
-            } else if (urltype.equals("createuser")) {
+            }
+            else if(urltype.equals("cssrequest"))
+            {
+                body = Files.readAllBytes(new File("./webapp" +
+                        url).toPath());
+                response200Headercss(dos, body.length);
+                responseBody(dos, body);
+            }
+            else if (urltype.equals("createuser")) {
                 User webUser = null;
                 params = "";
                 if (httpMethod.equals("GET")) {
@@ -155,6 +163,17 @@ public class RequestHandler extends Thread {
         }
     }
 
+    private void response200Headercss(DataOutputStream dos, int lengthOfBodyContent) {
+        try {
+            dos.writeBytes("HTTP/1.1 200 OK \r\n");
+            dos.writeBytes("Content-Type: text/css\r\n");
+            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+
     private void response302Header(DataOutputStream dos, String url,
                                    boolean setcookie, String cookievalue) {
         try {
@@ -183,6 +202,8 @@ public class RequestHandler extends Thread {
     {
         if(url.contains(".html") || url.contains(".ico"))
             return "filerequest";
+        if(url.endsWith(".css"))
+            return "cssrequest";
         if(url.startsWith("/user/create"))
             return "createuser";
         if(url.startsWith("/user/login"))
