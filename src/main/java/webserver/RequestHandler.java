@@ -34,8 +34,10 @@ public class RequestHandler extends Thread {
             BufferedReader bufferedReader = new BufferedReader
                     (new InputStreamReader(in, "UTF-8"));
             String httpDataLine = bufferedReader.readLine();
+
             if (httpDataLine == null)
                 return;
+
             String[] tokens = httpDataLine.split(" ");
             String httpMethod = tokens[0];
             String url = tokens[1];
@@ -44,6 +46,7 @@ public class RequestHandler extends Thread {
             String urltype = analyseurl(url);
             int contentLength = 0;
             boolean logined = false;
+
             while (!httpDataLine.equals("")) {
                 httpDataLine = bufferedReader.readLine();
                 if (httpDataLine.contains("Content-Length")) {
@@ -59,6 +62,7 @@ public class RequestHandler extends Thread {
                 }
                 log.info(httpDataLine);
             }
+
             DataOutputStream dos = new DataOutputStream(out);
 
             if (urltype.equals("filerequest")) {
@@ -104,6 +108,7 @@ public class RequestHandler extends Thread {
         }
     }
 
+
     private byte[] createTableofUsers(Collection<User> userList)
     {
         StringBuilder stringBuilder = new StringBuilder();
@@ -123,6 +128,8 @@ public class RequestHandler extends Thread {
         stringBuilder.append("<table>");
         return stringBuilder.toString().getBytes();
     }
+
+
     private void loginUser(DataOutputStream dos,BufferedReader bufferedReader,int contentLength)
             throws IOException {
         String params = null;
@@ -145,6 +152,8 @@ public class RequestHandler extends Thread {
                     "logined=false");
         }
     }
+
+
     private void createUser(String url,DataOutputStream dos,String httpMethod,
                             BufferedReader bufferedReader,int contentLength)
             throws IOException{
@@ -165,6 +174,8 @@ public class RequestHandler extends Thread {
         response302Header(dos, "/index.html",false,null);
 
     }
+
+
     private void sendFileData(String url,DataOutputStream dos) throws IOException {
         byte[] body = new byte[0];
         try {
@@ -177,6 +188,8 @@ public class RequestHandler extends Thread {
         responseBody(dos, body);
     }
 
+
+
     private void sendcssData(String url,DataOutputStream dos) throws IOException {
         byte[] body = new byte[0];
         try {
@@ -188,6 +201,9 @@ public class RequestHandler extends Thread {
         response200Headercss(dos, body.length);
         responseBody(dos, body);
     }
+
+
+
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
         try {
             dos.writeBytes("HTTP/1.1 200 OK \r\n");
@@ -199,6 +215,8 @@ public class RequestHandler extends Thread {
         }
     }
 
+
+
     private void response200Headercss(DataOutputStream dos, int lengthOfBodyContent) {
         try {
             dos.writeBytes("HTTP/1.1 200 OK \r\n");
@@ -209,6 +227,7 @@ public class RequestHandler extends Thread {
             log.error(e.getMessage());
         }
     }
+
 
     private void response302Header(DataOutputStream dos, String url,
                                    boolean setcookie, String cookievalue) {
@@ -225,6 +244,7 @@ public class RequestHandler extends Thread {
         }
     }
 
+
     private void responseBody(DataOutputStream dos, byte[] body) {
         try {
             dos.write(body, 0, body.length);
@@ -233,6 +253,7 @@ public class RequestHandler extends Thread {
             log.error(e.getMessage());
         }
     }
+
 
     private String analyseurl(String url)
     {
