@@ -60,8 +60,7 @@ public class RequestHandler extends Thread {
                 log.info(httpDataLine);
             }
             DataOutputStream dos = new DataOutputStream(out);
-            byte[] body = {};
-            //String params;
+
             if (urltype.equals("filerequest")) {
                 sendFileData(url,dos);
             }
@@ -80,7 +79,7 @@ public class RequestHandler extends Thread {
                 listUser(logined,dos);
             }
             else {
-                body = "Hello World".getBytes();
+                byte[] body =  "Hello World".getBytes();
                 response200Header(dos, body.length);
                 responseBody(dos, body);
             }
@@ -95,22 +94,7 @@ public class RequestHandler extends Thread {
         if(logined)
         {
             Collection<User> userList = DataBase.findAll();
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append("<table>");
-            stringBuilder.append("<tr>");
-            stringBuilder.append("<th>Userid</th>");
-            stringBuilder.append("<th>Name</th>");
-            stringBuilder.append("<th>Email</th>");
-            for(User u: userList)
-            {
-                stringBuilder.append("<tr>");
-                stringBuilder.append("<td>"+u.getUserId()+"</td>");
-                stringBuilder.append("<td>"+u.getName()+"</td>");
-                stringBuilder.append("<td>"+u.getEmail()+"</td>");
-                stringBuilder.append("<tr>");
-            }
-            stringBuilder.append("<table>");
-            byte[] body = stringBuilder.toString().getBytes();
+            byte[] body = createTableofUsers(userList);
             response200Header(dos, body.length);
             responseBody(dos, body);
         }
@@ -118,6 +102,26 @@ public class RequestHandler extends Thread {
             response302Header(dos, "/user/login.html",false,
                     null);
         }
+    }
+
+    private byte[] createTableofUsers(Collection<User> userList)
+    {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("<table>");
+        stringBuilder.append("<tr>");
+        stringBuilder.append("<th>Userid</th>");
+        stringBuilder.append("<th>Name</th>");
+        stringBuilder.append("<th>Email</th>");
+        for(User u: userList)
+        {
+            stringBuilder.append("<tr>");
+            stringBuilder.append("<td>"+u.getUserId()+"</td>");
+            stringBuilder.append("<td>"+u.getName()+"</td>");
+            stringBuilder.append("<td>"+u.getEmail()+"</td>");
+            stringBuilder.append("<tr>");
+        }
+        stringBuilder.append("<table>");
+        return stringBuilder.toString().getBytes();
     }
     private void loginUser(DataOutputStream dos,BufferedReader bufferedReader,int contentLength)
             throws IOException {
