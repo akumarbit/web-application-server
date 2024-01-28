@@ -5,10 +5,8 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
-import com.google.common.base.Utf8;
 import db.DataBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,83 +61,23 @@ public class RequestHandler extends Thread {
             }
             DataOutputStream dos = new DataOutputStream(out);
             byte[] body = {};
-            String params;
+            //String params;
             if (urltype.equals("filerequest")) {
-                body = Files.readAllBytes(new File("./webapp" +
-                        url).toPath());
-                response200Header(dos, body.length);
-                responseBody(dos, body);
+                sendFileData(url,dos);
             }
             else if(urltype.equals("cssrequest"))
             {
-                body = Files.readAllBytes(new File("./webapp" +
-                        url).toPath());
-                response200Headercss(dos, body.length);
-                responseBody(dos, body);
+                sendcssData(url,dos);
             }
             else if (urltype.equals("createuser")) {
-                User webUser = null;
-                params = "";
-                if (httpMethod.equals("GET")) {
-                    int index = url.indexOf("?");
-//                    String requestPath = url.substring(0, index);
-                    params = url.substring(index + 1);
-
-                } else if (httpMethod.equals("POST")) {
-                    params = IOUtils.readData(bufferedReader, contentLength);
-
-                }
-                Map<String, String> paramsMap = HttpRequestUtils.parseQueryString(params);
-                webUser = new User(paramsMap.get("userId"), paramsMap.get("password"),
-                        paramsMap.get("name"), paramsMap.get("email"));
-                DataBase.addUser(webUser);
-                log.info("new user created:" + webUser);
-                body = "new user created".getBytes();
-                response302Header(dos, "/index.html",false,null);
-            } else if (urltype.equals("loginuser")) {
-                params = IOUtils.readData(bufferedReader, contentLength);
-                Map<String, String> paramsMap = HttpRequestUtils.parseQueryString(params);
-                User dbUser = DataBase.findUserById(paramsMap.get("userId"));
-                if(dbUser!= null && (dbUser.getUserId().equals(paramsMap.get("userId"))) &&
-                        (dbUser.getPassword().equals(paramsMap.get("password"))))
-                {
-                    log.info("user credentials matched with saved user in db");
-                    response302Header(dos, "/index.html",true,
-                            "logined=true");
-                }
-                else{
-                    response302Header(dos, "/user/login_failed.html",true,
-                            "logined=false");
-                }
+                createUser(url,dos,httpMethod,bufferedReader,contentLength);
+             }
+            else if (urltype.equals("loginuser")) {
+                loginUser(dos,bufferedReader,contentLength);
             }
             else if(urltype.equals("listuser"))
             {
-                  if(logined)
-                  {
-                      Collection<User> userList = DataBase.findAll();
-                      StringBuilder stringBuilder = new StringBuilder();
-                      stringBuilder.append("<table>");
-                      stringBuilder.append("<tr>");
-                      stringBuilder.append("<th>Userid</th>");
-                      stringBuilder.append("<th>Name</th>");
-                      stringBuilder.append("<th>Email</th>");
-                      for(User u: userList)
-                      {
-                          stringBuilder.append("<tr>");
-                          stringBuilder.append("<td>"+u.getUserId()+"</td>");
-                          stringBuilder.append("<td>"+u.getName()+"</td>");
-                          stringBuilder.append("<td>"+u.getEmail()+"</td>");
-                          stringBuilder.append("<tr>");
-                      }
-                      stringBuilder.append("<table>");
-                      body = stringBuilder.toString().getBytes();
-                      response200Header(dos, body.length);
-                      responseBody(dos, body);
-                  }
-                  else {
-                      response302Header(dos, "/user/login.html",false,
-                              null);
-                  }
+                listUser(logined,dos);
             }
             else {
                 body = "Hello World".getBytes();
@@ -152,6 +90,100 @@ public class RequestHandler extends Thread {
         }
     }
 
+    private void listUser(boolean logined,DataOutputStream dos)
+    {
+        if(logined)
+        {
+            Collection<User> userList = DataBase.findAll();
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append("<table>");
+            stringBuilder.append("<tr>");
+            stringBuilder.append("<th>Userid</th>");
+            stringBuilder.append("<th>Name</th>");
+            stringBuilder.append("<th>Email</th>");
+            for(User u: userList)
+            {
+                stringBuilder.append("<tr>");
+                stringBuilder.append("<td>"+u.getUserId()+"</td>");
+                stringBuilder.append("<td>"+u.getName()+"</td>");
+                stringBuilder.append("<td>"+u.getEmail()+"</td>");
+                stringBuilder.append("<tr>");
+            }
+            stringBuilder.append("<table>");
+            byte[] body = stringBuilder.toString().getBytes();
+            response200Header(dos, body.length);
+            responseBody(dos, body);
+        }
+        else {
+            response302Header(dos, "/user/login.html",false,
+                    null);
+        }
+    }
+    private void loginUser(DataOutputStream dos,BufferedReader bufferedReader,int contentLength)
+            throws IOException {
+        String params = null;
+        try {
+            params = IOUtils.readData(bufferedReader, contentLength);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        Map<String, String> paramsMap = HttpRequestUtils.parseQueryString(params);
+        User dbUser = DataBase.findUserById(paramsMap.get("userId"));
+        if(dbUser!= null && (dbUser.getUserId().equals(paramsMap.get("userId"))) &&
+                (dbUser.getPassword().equals(paramsMap.get("password"))))
+        {
+            log.info("user credentials matched with saved user in db");
+            response302Header(dos, "/index.html",true,
+                    "logined=true");
+        }
+        else{
+            response302Header(dos, "/user/login_failed.html",true,
+                    "logined=false");
+        }
+    }
+    private void createUser(String url,DataOutputStream dos,String httpMethod,
+                            BufferedReader bufferedReader,int contentLength)
+            throws IOException{
+        User webUser = null;
+        String params = "";
+        if (httpMethod.equals("GET")) {
+            int index = url.indexOf("?");
+            params = url.substring(index + 1);
+        } else if (httpMethod.equals("POST")) {
+            params = IOUtils.readData(bufferedReader, contentLength);
+
+        }
+        Map<String, String> paramsMap = HttpRequestUtils.parseQueryString(params);
+        webUser = new User(paramsMap.get("userId"), paramsMap.get("password"),
+                paramsMap.get("name"), paramsMap.get("email"));
+        DataBase.addUser(webUser);
+        log.info("new user created:" + webUser);
+        response302Header(dos, "/index.html",false,null);
+
+    }
+    private void sendFileData(String url,DataOutputStream dos) throws IOException {
+        byte[] body = new byte[0];
+        try {
+            body = Files.readAllBytes(new File("./webapp" +
+                    url).toPath());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        response200Header(dos, body.length);
+        responseBody(dos, body);
+    }
+
+    private void sendcssData(String url,DataOutputStream dos) throws IOException {
+        byte[] body = new byte[0];
+        try {
+            body = Files.readAllBytes(new File("./webapp" +
+                    url).toPath());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        response200Headercss(dos, body.length);
+        responseBody(dos, body);
+    }
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
         try {
             dos.writeBytes("HTTP/1.1 200 OK \r\n");
